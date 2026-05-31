@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PRO-FLOW | Gamybos Valdymo Sistema</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- html5-qrcode library for camera scanner -->
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <!-- SheetJS library to read Excel files -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="dark-theme">
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="logo-area">
+                <div class="logo-icon">
+                    <i data-lucide="activity" class="neon-text-blue animate-pulse"></i>
+                </div>
+                <div class="logo-text">
+                    <span class="brand-name">PRO<span class="neon-text-blue">-</span>FLOW</span>
+                    <span class="brand-sub">Gamybos Sekimas</span>
+                </div>
+            </div>
+            
+            <nav class="nav-menu">
+                <a href="#dashboard" class="nav-item active" data-tab="dashboard">
+                    <i data-lucide="layout-dashboard"></i>
+                    <span>Skydelis (KPI)</span>
+                </a>
+                <a href="#shift" class="nav-item" data-tab="shift">
+                    <i data-lucide="grid"></i>
+                    <span>Pamainos Monitorius</span>
+                </a>
+                <a href="#worker" class="nav-item" data-tab="worker">
+                    <i data-lucide="user-check"></i>
+                    <span>Darbuotojo Sąsaja</span>
+                </a>
+                <a href="#kanban" class="nav-item" data-tab="kanban">
+                    <i data-lucide="kanban-square"></i>
+                    <span>Eigos Lenta</span>
+                </a>
+                <a href="#stations" class="nav-item" data-tab="stations">
+                    <i data-lucide="cpu"></i>
+                    <span>Stotelių Valdymas</span>
+                </a>
+                <a href="#orders" class="nav-item" data-tab="orders">
+                    <i data-lucide="clipboard-list"></i>
+                    <span>Užsakymai</span>
+                </a>
+                <a href="#warehouse" class="nav-item" data-tab="warehouse">
+                    <i data-lucide="warehouse"></i>
+                    <span>Sandėlis ir Medžiagos</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="connection-status">
+                    <span class="status-dot online"></span>
+                    <span>Lokalus režimas</span>
+                </div>
+                <div class="current-time" id="clock">00:00:00</div>
+            </div>
+            
+            <button type="button" class="btn-sidebar-toggle" id="btn-toggle-sidebar" title="Suskleisti meniu">
+                <i data-lucide="chevron-left" id="toggle-sidebar-icon"></i>
+            </button>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Top Header -->
+            <header class="top-header">
+                <div class="page-info">
+                    <h1 id="page-title">Prietaisų Skydelis</h1>
+                    <p id="page-description" class="text-muted">Bendras gamybos našumas, rodikliai ir analizė.</p>
+                </div>
+                
+                <div class="header-actions">
+                    <input type="file" id="csv-file-input" accept=".csv, .xlsx, .xls" style="display: none;">
+                    <button class="btn btn-secondary" id="btn-import-csv" title="Įkelti gamybos planą (Excel / CSV)">
+                        <i data-lucide="upload-cloud"></i>
+                        <span>Įkelti Planą (Excel / CSV)</span>
+                    </button>
+                    <button class="btn btn-primary" id="btn-quick-new-order">
+                        <i data-lucide="plus-circle"></i>
+                        <span>Naujas Užsakymas</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- TAB 1: DASHBOARD -->
+            <section id="tab-dashboard" class="tab-content active-tab">
+                <!-- KPI Cards Grid -->
+                <div class="kpi-grid">
+                    <div class="kpi-card glass">
+                        <div class="kpi-icon-wrapper bg-blue-dim">
+                            <i data-lucide="list-todo" class="neon-text-blue"></i>
+                        </div>
+                        <div class="kpi-info">
+                            <h3>Planuojama</h3>
+                            <div class="kpi-value" id="kpi-planned">0</div>
+                            <p class="kpi-subtext">Laukia gamybos pradžios</p>
+                        </div>
+                    </div>
+                    
+                    <div class="kpi-card glass">
+                        <div class="kpi-icon-wrapper bg-amber-dim">
+                            <i data-lucide="settings" class="neon-text-amber animate-spin-slow"></i>
+                        </div>
+                        <div class="kpi-info">
+                            <h3>Gaminama</h3>
+                            <div class="kpi-value" id="kpi-active">0</div>
+                            <p class="kpi-subtext">Aktyvios gamybos stotelėse</p>
+                        </div>
+                    </div>
+
+                    <div class="kpi-card glass">
+                        <div class="kpi-icon-wrapper bg-green-dim">
+                            <i data-lucide="check-circle-2" class="neon-text-green"></i>
+                        </div>
+                        <div class="kpi-info">
+                            <h3>Baigta</h3>
+                            <div class="kpi-value" id="kpi-completed">0</div>
+                            <p class="kpi-subtext">Užbaigti užsakymai šią savaitę</p>
+                        </div>
+                    </div>
+
+                    <div class="kpi-card glass">
+                        <div class="kpi-icon-wrapper bg-red-dim">
+                            <i data-lucide="alert-triangle" class="neon-text-red"></i>
+                        </div>
+                        <div class="kpi-info">
+                            <h3>Vėluoja</h3>
+                            <div class="kpi-value" id="kpi-delayed">0</div>
+                            <p class="kpi-subtext">Viršijo numatytą terminą</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Graphs and Realtime Feed Section -->
+                <div class="dashboard-details">
+                    <!-- Left: Charts -->
+                    <div class="dashboard-column chart-section glass">
+                        <div class="section-title-wrapper">
+                            <h2>Gamybos Apžvalga</h2>
+                            <span class="badge badge-info">Atnaujinta realiu laiku</span>
+                        </div>
+                        <div class="charts-container">
+                            <div class="chart-wrapper">
+                                <canvas id="chart-orders-status"></canvas>
+                            </div>
+                            <div class="chart-wrapper">
+                                <canvas id="chart-stations-load"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Alerts and Activity -->
+                    <div class="dashboard-column feed-section glass">
+                        <h2>Sistemos Įspėjimai</h2>
+                        <div class="alerts-feed" id="alerts-container">
+                            <!-- Populated by JavaScript -->
+                            <div class="empty-feed">Įspėjimų nėra. Viskas veikia pagal planą.</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 1.5: SHIFT MONITOR (MATRICA) -->
+            <section id="tab-shift" class="tab-content">
+                <!-- Shift Capacity Cards -->
+                <div class="shift-capacity-row glass">
+                    <div class="capacity-title">
+                        <h2>Šios Pamainos Gamybos Planas</h2>
+                        <p class="text-muted">Planavimo eilė: 12 vnt. pamainai ir 12 vnt. atsargai į priekį.</p>
+                        <button class="btn btn-danger" id="btn-clear-plan" style="margin-top: 10px; padding: 6px 12px; font-size: 12px;" title="Išvalyti visus užsakymus naujai pamainai">
+                            <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+                            <span>Išvalyti Planą</span>
+                        </button>
+                    </div>
+                    <div class="capacity-stats">
+                        <div class="capacity-stat-box">
+                            <span class="stat-label">Šios pamainos planas (max 12 vnt):</span>
+                            <div class="progress-wrapper">
+                                <div class="progress-bar-container">
+                                    <div class="progress-bar-glow bg-amber" id="shift-plan-progress" style="width: 0%"></div>
+                                </div>
+                                <span class="stat-value" id="shift-plan-count">0 / 12 vnt.</span>
+                            </div>
+                        </div>
+                        <div class="capacity-stat-box">
+                            <span class="stat-label">Atsarga į priekį (max 12 vnt):</span>
+                            <div class="progress-wrapper">
+                                <div class="progress-bar-container">
+                                    <div class="progress-bar-glow bg-purple" id="shift-queue-progress" style="width: 0%"></div>
+                                </div>
+                                <span class="stat-value" id="shift-queue-count">0 / 12 vnt.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Matrix Board -->
+                <div class="matrix-board-container glass">
+                    <div class="matrix-header-area" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                        <h2>Stotelių Gamybos Srauto Matrica</h2>
+                        <div class="matrix-filter-wrapper" style="display: flex; align-items: center; gap: 10px;">
+                            <label for="matrix-batch-filter" style="font-size: 13px; font-weight: 500; color: var(--text-secondary);">Partija / Aukštas:</label>
+                            <select id="matrix-batch-filter" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 6px 12px; color: var(--text-primary); font-size: 13px; outline: none; cursor: pointer; transition: var(--transition-fast);">
+                                <option value="">Visi aukštai</option>
+                            </select>
+                        </div>
+                        <div class="matrix-legend">
+                            <span class="legend-item"><span class="legend-color bg-blue"></span>Planuojama</span>
+                            <span class="legend-item"><span class="legend-color bg-purple"></span>Ruošiama</span>
+                            <span class="legend-item"><span class="legend-color bg-amber animate-pulse"></span>Gaminama</span>
+                            <span class="legend-item"><span class="legend-color bg-indigo"></span>Kokybė (QC)</span>
+                            <span class="legend-item"><span class="legend-color bg-green"></span>Baigta</span>
+                        </div>
+                    </div>
+                    
+                    <div class="matrix-overflow">
+                        <table class="matrix-table" id="matrix-table-el">
+                            <thead>
+                                <tr id="matrix-header-row">
+                                    <th>Gaminys (Planavimo eilė)</th>
+                                    <!-- Dinaminiai stotelių stulpeliai bus įterpiami čia: Karkasas #1, Karkasas #2, Gipsas #1, Apdaila #1... -->
+                                </tr>
+                            </thead>
+                            <tbody id="matrix-body-el">
+                                <!-- Dinaminės užsakymų eilutės bus sugeneruojamos čia -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 2: WORKER INTERFACE -->
+            <section id="tab-worker" class="tab-content">
+                <div class="worker-layout">
+                    <!-- Worker Action Console -->
+                    <div class="worker-card glass">
+                        <div class="card-header">
+                            <i data-lucide="smartphone" class="neon-text-blue"></i>
+                            <h2>Darbuotojo Konsolė (Darbastalio Skydelis)</h2>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="worker-panel-id">Nuskaitykite arba įveskite Panelės / Užsakymo ID *</label>
+                            <div class="input-with-button">
+                                <input type="text" id="worker-panel-id" placeholder="Pvz: PAN-1002" autocomplete="off">
+                                <button class="btn btn-secondary" id="btn-worker-qr" title="Nuskenuoti QR kodą telefonu">
+                                    <i data-lucide="qr-code"></i>
+                                    <span>QR Skenavimas</span>
+                                </button>
+                                <button class="btn btn-secondary" id="btn-worker-search">Ieškoti</button>
+                            </div>
+                            <div id="qr-reader-container" class="hidden" style="margin-top: 15px; border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--border-color); background: rgba(0,0,0,0.2); padding: 15px; text-align: center;">
+                                <div id="qr-reader" style="width: 100%; max-width: 350px; margin: 0 auto; border-radius: var(--radius-sm); border: 1px solid rgba(255,255,255,0.1);"></div>
+                                <button class="btn btn-danger" id="btn-stop-qr" style="margin-top: 12px; font-size: 13px; padding: 6px 16px;">Stabdyti kamerą</button>
+                            </div>
+                            <div class="error-text" id="worker-id-error"></div>
+                        </div>
+
+                        <!-- Found Order Preview (Initially Hidden) -->
+                        <div id="worker-order-preview" class="order-preview-card hidden">
+                            <div class="preview-header">
+                                <h3 id="preview-title">Panelė #1002</h3>
+                                <span class="badge" id="preview-priority">Aukštas</span>
+                            </div>
+                            <div class="preview-details">
+                                <p><strong>Pavadinimas:</strong> <span id="preview-name">Karkasinė siena A-2</span></p>
+                                <p><strong>Būsena:</strong> <span id="preview-status">Planuojama</span></p>
+                                <p><strong>Kiekis:</strong> <span id="preview-qty">1 vnt</span></p>
+                            </div>
+                        </div>
+
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="worker-name">Darbuotojo Vardas *</label>
+                                <input type="text" id="worker-name" placeholder="Įveskite savo vardą" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="worker-station">Priskirta Stotelė *</label>
+                                <select id="worker-station" required>
+                                    <option value="" disabled selected>Pasirinkite stotelę...</option>
+                                    <!-- Dynamic Options from JS -->
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="worker-actions">
+                            <button class="btn btn-success btn-large" id="btn-worker-start">
+                                <i data-lucide="play"></i>
+                                <span>PRADĖTI DARBĄ</span>
+                            </button>
+                            <button class="btn btn-warning btn-large" id="btn-worker-finish">
+                                <i data-lucide="square"></i>
+                                <span>UŽBAIGTI DARBĄ</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Worker's Active Work list -->
+                    <div class="active-jobs-card glass">
+                        <h2>Šiuo metu vykdomi darbai stotelėse</h2>
+                        <div class="active-jobs-list" id="active-jobs-container">
+                            <!-- Populated dynamically -->
+                            <div class="empty-feed">Šiuo metu jokių aktyvių darbų stotelėse nevyksta.</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 3: KANBAN BOARD -->
+            <section id="tab-kanban" class="tab-content">
+                <div class="kanban-board">
+                    <!-- Column 1: Planned -->
+                    <div class="kanban-column" data-status="Planuojama">
+                        <div class="column-header">
+                            <span class="column-dot bg-blue"></span>
+                            <h3>Planuojama</h3>
+                            <span class="column-count" id="count-planned">0</span>
+                        </div>
+                        <div class="kanban-cards-container" id="kanban-planned"></div>
+                    </div>
+
+                    <!-- Column 2: Preparation -->
+                    <div class="kanban-column" data-status="Ruošiama">
+                        <div class="column-header">
+                            <span class="column-dot bg-purple"></span>
+                            <h3>Ruošiama</h3>
+                            <span class="column-count" id="count-prep">0</span>
+                        </div>
+                        <div class="kanban-cards-container" id="kanban-prep"></div>
+                    </div>
+
+                    <!-- Column 3: In Progress -->
+                    <div class="kanban-column" data-status="Gaminama">
+                        <div class="column-header">
+                            <span class="column-dot bg-amber animate-pulse"></span>
+                            <h3>Gaminama</h3>
+                            <span class="column-count" id="count-active">0</span>
+                        </div>
+                        <div class="kanban-cards-container" id="kanban-active"></div>
+                    </div>
+
+                    <!-- Column 4: QC -->
+                    <div class="kanban-column" data-status="Kokybės kontrolė">
+                        <div class="column-header">
+                            <span class="column-dot bg-indigo"></span>
+                            <h3>Kokybės Kontrolė</h3>
+                            <span class="column-count" id="count-qc">0</span>
+                        </div>
+                        <div class="kanban-cards-container" id="kanban-qc"></div>
+                    </div>
+
+                    <!-- Column 5: Completed -->
+                    <div class="kanban-column" data-status="Baigta">
+                        <div class="column-header">
+                            <span class="column-dot bg-green"></span>
+                            <h3>Baigta</h3>
+                            <span class="column-count" id="count-completed">0</span>
+                        </div>
+                        <div class="kanban-cards-container" id="kanban-completed"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 4: STATIONS CONFIG -->
+            <section id="tab-stations" class="tab-content">
+                <div class="stations-control-panel">
+                    <div class="alert-info-box glass">
+                        <i data-lucide="info" class="neon-text-blue"></i>
+                        <p>Čia meistras gali dinamiškai valdyti aktyvių gamybos stotelių skaičių. Pasikeitus stotelių skaičiui, darbuotojai ir užsakymai iškart matys naujas priskirimo parinktis.</p>
+                    </div>
+                    
+                    <div class="stations-grid" id="stations-grid-container">
+                        <!-- Generuojama JS: Karkasas, Gipsas, Apdaila -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 5: ORDERS LIST -->
+            <section id="tab-orders" class="tab-content">
+                <div class="orders-header glass">
+                    <div class="filters-row">
+                        <div class="search-box">
+                            <i data-lucide="search"></i>
+                            <input type="text" id="order-search" placeholder="Paieška pagal ID arba pavadinimą...">
+                        </div>
+                        
+                        <div class="select-filters">
+                            <select id="filter-status">
+                                <option value="">Visos Būsenos</option>
+                                <option value="Planuojama">Planuojama</option>
+                                <option value="Ruošiama">Ruošiama</option>
+                                <option value="Gaminama">Gaminama</option>
+                                <option value="Kokybės kontrolė">Kokybės kontrolė</option>
+                                <option value="Baigta">Baigta</option>
+                            </select>
+
+                            <select id="filter-priority">
+                                <option value="">Visi Prioritetai</option>
+                                <option value="Aukštas">Aukštas</option>
+                                <option value="Vidutinis">Vidutinis</option>
+                                <option value="Žemas">Žemas</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-container glass">
+                    <table class="orders-table">
+                        <thead>
+                            <tr>
+                                <th>Užsakymo ID</th>
+                                <th>Pavadinimas</th>
+                                <th>Kiekis</th>
+                                <th>Prioritetas</th>
+                                <th>Stotelė</th>
+                                <th>Būsena</th>
+                                <th>Atlikimas</th>
+                                <th>Veiksmai</th>
+                            </tr>
+                        </thead>
+                        <tbody id="orders-table-body">
+                            <!-- Populated Dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- TAB 6: WAREHOUSE & MATERIALS -->
+            <section id="tab-warehouse" class="tab-content">
+                <div class="warehouse-layout">
+                    <!-- Left Column: Inventory Stock Editing -->
+                    <div class="warehouse-card glass">
+                        <div class="card-header">
+                            <i data-lucide="package" class="neon-text-blue"></i>
+                            <h2>Sandėlio Atsargų Likučiai</h2>
+                        </div>
+                        <p class="text-muted" style="margin-bottom: 20px; font-size: 13px;">Įveskite esamus medžiagų likučius sandėlyje. Programa automatiškai perskaičiuos, ar jų užteks planuojamiems gaminiams.</p>
+                        
+                        <div class="inventory-inputs-list">
+                            <!-- Profiles -->
+                            <div class="inventory-item-control">
+                                <span class="inventory-item-label">🛠️ Profiliai (vnt.):</span>
+                                <div class="inventory-item-actions">
+                                    <button class="btn btn-secondary btn-inv-adjust" onclick="adjustInventory('profiles', -10)">-10</button>
+                                    <input type="number" id="inv-profiles" min="0" value="150" onchange="onInventoryInputChange('profiles')">
+                                    <button class="btn btn-secondary btn-inv-adjust" onclick="adjustInventory('profiles', 10)">+10</button>
+                                </div>
+                            </div>
+                            
+                            <!-- Rails -->
+                            <div class="inventory-item-control">
+                                <span class="inventory-item-label">🔲 Bėgeliai (vnt.):</span>
+                                <div class="inventory-item-actions">
+                                    <button class="btn btn-secondary btn-inv-adjust" onclick="adjustInventory('rails', -10)">-10</button>
+                                    <input type="number" id="inv-rails" min="0" value="80" onchange="onInventoryInputChange('rails')">
+                                    <button class="btn btn-secondary btn-inv-adjust" onclick="adjustInventory('rails', 10)">+10</button>
+                                </div>
+                            </div>
+                            
+                            <!-- Windows -->
+                            <div class="inventory-item-control">
+                                <span class="inventory-item-label">🖼️ Langai (vnt.):</span>
+                                <div class="inventory-item-actions">
+                                    <button class="btn btn-secondary btn-inv-adjust" onclick="adjustInventory('windows', -5)">-5</button>
+                                    <input type="number" id="inv-windows" min="0" value="20" onchange="onInventoryInputChange('windows')">
+                                    <button class="btn btn-secondary btn-inv-adjust" onclick="adjustInventory('windows', 5)">+5</button>
+                                </div>
+                            </div>
+                            
+                            <!-- Cladding -->
+                            <div class="inventory-item-control">
+                                <span class="inventory-item-label">🪵 Apdaila (vnt.):</span>
+                                <div class="inventory-item-actions">
+                                    <button class="btn btn-secondary btn-inv-adjust" onclick="adjustInventory('cladding', -10)">-10</button>
+                                    <input type="number" id="inv-cladding" min="0" value="100" onchange="onInventoryInputChange('cladding')">
+                                    <button class="btn btn-secondary btn-inv-adjust" onclick="adjustInventory('cladding', 10)">+10</button>
+                                </div>
+                            </div>
+
+                            <!-- Gypsum -->
+                            <div class="inventory-item-control">
+                                <span class="inventory-item-label">🧱 Gipsas (vnt.):</span>
+                                <div class="inventory-item-actions">
+                                    <button class="btn btn-secondary btn-inv-adjust" onclick="adjustInventory('gypsum', -20)">-20</button>
+                                    <input type="number" id="inv-gypsum" min="0" value="120" onchange="onInventoryInputChange('gypsum')">
+                                    <button class="btn btn-secondary btn-inv-adjust" onclick="adjustInventory('gypsum', 20)">+20</button>
+                                </div>
+                            </div>
+
+                            <!-- Wool -->
+                            <div class="inventory-item-control">
+                                <span class="inventory-item-label">🧶 Vata (vnt.):</span>
+                                <div class="inventory-item-actions">
+                                    <button class="btn btn-secondary btn-inv-adjust" onclick="adjustInventory('wool', -10)">-10</button>
+                                    <input type="number" id="inv-wool" min="0" value="90" onchange="onInventoryInputChange('wool')">
+                                    <button class="btn btn-secondary btn-inv-adjust" onclick="adjustInventory('wool', 10)">+10</button>
+                                </div>
+                            </div>
+
+                            <!-- Rubber Seal -->
+                            <div class="inventory-item-control">
+                                <span class="inventory-item-label">🩹 Sandarinimo guma (vnt.):</span>
+                                <div class="inventory-item-actions">
+                                    <button class="btn btn-secondary btn-inv-adjust" onclick="adjustInventory('rubber_seal', -10)">-10</button>
+                                    <input type="number" id="inv-rubber_seal" min="0" value="60" onchange="onInventoryInputChange('rubber_seal')">
+                                    <button class="btn btn-secondary btn-inv-adjust" onclick="adjustInventory('rubber_seal', 10)">+10</button>
+                                </div>
+                            </div>
+
+                            <!-- Rubber Glaze -->
+                            <div class="inventory-item-control">
+                                <span class="inventory-item-label">🩹 Stiklinimo guma (vnt.):</span>
+                                <div class="inventory-item-actions">
+                                    <button class="btn btn-secondary btn-inv-adjust" onclick="adjustInventory('rubber_glaze', -10)">-10</button>
+                                    <input type="number" id="inv-rubber_glaze" min="0" value="40" onchange="onInventoryInputChange('rubber_glaze')">
+                                    <button class="btn btn-secondary btn-inv-adjust" onclick="adjustInventory('rubber_glaze', 10)">+10</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column: Shift Plan Requirement Matrix -->
+                    <div class="warehouse-matrix-card glass">
+                        <div class="matrix-header-area" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 16px; margin-bottom: 20px;">
+                            <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                                <button type="button" class="btn btn-secondary btn-icon" id="btn-toggle-warehouse-left" title="Suskleisti sandėlio likučius" style="border-radius: var(--radius-sm); width: 36px; height: 36px; padding: 0;">
+                                    <i data-lucide="chevron-left" id="toggle-warehouse-icon"></i>
+                                </button>
+                                <h2>Medžiagų Poreikio ir Likučių Prognozė</h2>
+                                <span class="badge badge-info" id="warehouse-totals-badge">Reikalingas atsargas paskaičiuosime...</span>
+                            </div>
+                            
+                            <div class="matrix-filter-wrapper" style="display: flex; align-items: center; gap: 10px;">
+                                <label for="warehouse-batch-filter" style="font-size: 13px; font-weight: 500; color: var(--text-secondary);">Partija / Aukštas:</label>
+                                <select id="warehouse-batch-filter" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 6px 12px; color: var(--text-primary); font-size: 13px; outline: none; cursor: pointer; transition: var(--transition-fast);">
+                                    <option value="">Visi aukštai</option>
+                                </select>
+                            </div>
+                        </div>
+                        <p class="text-muted" style="margin-bottom: 20px; font-size: 13px;">Matrica tikrina šiandienos pamainos planą (12 vnt.) bei atsargą į priekį (12 vnt.) eilės tvarka.</p>
+                        
+                        <div class="table-container" style="border: none; box-shadow: none; padding: 0; background: transparent; overflow-x: auto;">
+                            <table class="orders-table warehouse-table" style="min-width: 900px;">
+                                <thead>
+                                    <tr>
+                                        <th>Eilė</th>
+                                        <th>ID</th>
+                                        <th>Tipas</th>
+                                        <th title="Profiliai" class="text-center" style="text-align: center;">Prof.</th>
+                                        <th title="Bėgeliai" class="text-center" style="text-align: center;">Bėgel.</th>
+                                        <th title="Langai" class="text-center" style="text-align: center;">Langai</th>
+                                        <th title="Apdaila" class="text-center" style="text-align: center;">Apdaila</th>
+                                        <th title="Gipsas" class="text-center" style="text-align: center;">Gipsas</th>
+                                        <th title="Vata" class="text-center" style="text-align: center;">Vata</th>
+                                        <th title="Sandarinimo guma" class="text-center" style="text-align: center;">Sand. g.</th>
+                                        <th title="Stiklinimo guma" class="text-center" style="text-align: center;">Stikl. g.</th>
+                                        <th>Būsena</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="warehouse-matrix-body">
+                                    <!-- Populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- MODAL: CREATE / EDIT ORDER -->
+    <div class="modal-backdrop hidden" id="order-modal">
+        <div class="modal-content glass">
+            <div class="modal-header">
+                <h2 id="modal-title">Naujas Gamybos Užsakymas</h2>
+                <button class="btn-close" id="btn-close-modal">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            
+            <form id="order-form">
+                <input type="hidden" id="form-order-uuid">
+                
+                <div class="form-group">
+                    <label for="form-order-id">Panelės / Užsakymo ID *</label>
+                    <input type="text" id="form-order-id" placeholder="Pvz: PAN-1004" required>
+                    <small class="text-muted">Turi būti unikalus (pvz., PAN-XXXX)</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="form-order-name">Produkto / Panelės Pavadinimas *</label>
+                    <input type="text" id="form-order-name" placeholder="Pvz: Išorinė siena karkasinė A-1" required>
+                </div>
+
+                <div class="form-grid-three">
+                    <div class="form-group">
+                        <label for="form-order-qty">Kiekis (vnt) *</label>
+                        <input type="number" id="form-order-qty" min="1" value="1" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="form-order-priority">Prioritetas *</label>
+                        <select id="form-order-priority" required>
+                            <option value="Žemas">Žemas</option>
+                            <option value="Vidutinis" selected>Vidutinis</option>
+                            <option value="Aukštas">Aukštas</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="form-order-station-group">Reikalinga Sekcija *</label>
+                        <select id="form-order-station-group" required>
+                            <option value="Karkasas">Karkasas</option>
+                            <option value="Gipso surinkimas">Gipso surinkimas</option>
+                            <option value="Langai">Langai</option>
+                            <option value="Apdaila">Apdaila</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="form-order-batch">Partija (Aukštas) *</label>
+                        <input type="text" id="form-order-batch" placeholder="Pvz: D-1" required value="D-1">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="form-order-type">Panelės Tipas *</label>
+                        <select id="form-order-type" required>
+                            <option value="Pilnaviduris" selected>Pilnaviduris</option>
+                            <option value="Langinis">Langinis</option>
+                            <option value="Belanginis">Belanginis</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="form-order-deadline">Planuojamas Terminas *</label>
+                        <input type="datetime-local" id="form-order-deadline" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="form-order-queue-type">Priskirti Gamybos Planui *</label>
+                        <select id="form-order-queue-type" required>
+                            <option value="standartinė" selected>Standartinė eilė</option>
+                            <option value="pamaina">Šios pamainos planas (12 vnt.)</option>
+                            <option value="atsarga">Atsarga į priekį (12 vnt.)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Planuojama gamybos trukmė *</label>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <button type="button" class="btn btn-secondary" onclick="adjustFormDuration(-30)" style="padding: 10px 15px; font-weight: bold;">-30 min</button>
+                        <input type="text" id="form-order-duration-display" readonly value="2 val. 00 min." style="text-align: center; font-weight: 600; width: 145px; background: rgba(255,255,255,0.04); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px 16px;">
+                        <input type="hidden" id="form-order-duration" value="120">
+                        <button type="button" class="btn btn-secondary" onclick="adjustFormDuration(30)" style="padding: 10px 15px; font-weight: bold;">+30 min</button>
+                    </div>
+                    <small class="text-muted">Gali būti keičiama kas 30 min. (min. 30 min.)</small>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="btn-cancel-order">Atšaukti</button>
+                    <button type="submit" class="btn btn-primary" id="btn-save-order">Išsaugoti</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Script file -->
+    <script src="app.js"></script>
+</body>
+</html>
