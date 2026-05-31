@@ -123,7 +123,8 @@ let state = {
 
 // Authentication state for Master configuration
 let isMasterAuthenticated = false;
-const MASTER_PIN = "1234"; // Default Master PIN code
+// Load MASTER_PIN from localStorage or default to "4209"
+let MASTER_PIN = localStorage.getItem("pro_flow_master_pin") || "4209";
 
 // Migration: Ensure Langai station exists in current state
 if (!state.stations.hasOwnProperty("Langai")) {
@@ -342,7 +343,7 @@ function updateClock() {
 function switchTab(tabId) {
     const masterTabs = ["dashboard", "shift", "kanban", "stations", "orders", "warehouse"];
     if (masterTabs.includes(tabId) && !isMasterAuthenticated) {
-        const enteredPin = prompt("Įveskite meistro PIN kodą (numatytasis: 1234):");
+        const enteredPin = prompt("Įveskite meistro PIN kodą (numatytasis: 4209):");
         if (enteredPin === MASTER_PIN) {
             isMasterAuthenticated = true;
             const btnLock = document.getElementById("btn-lock-master");
@@ -401,6 +402,9 @@ function switchTab(tabId) {
                 titleEl.textContent = "Stotelių Valdymas";
                 descEl.textContent = "Valdykite karkaso, gipso surinkimo ir apdailos stotelių skaičių.";
                 updateStationsControl();
+                // Populate current PIN in the settings input
+                const pinInput = document.getElementById("form-master-pin-input");
+                if (pinInput) pinInput.value = MASTER_PIN;
                 break;
             case "shift":
                 titleEl.textContent = "Pamainos Monitorius";
@@ -2199,4 +2203,18 @@ window.lockMasterViews = function() {
     switchTab("worker");
     addSystemAlert("warning", "Valdymas užrakintas", "Meistras atsijungė iš valdymo sistemos.");
     alert("Valdymas sėkmingai užrakintas. Grąžinama darbuotojo konsolė.");
+};
+
+window.updateMasterPinAction = function() {
+    const pinInput = document.getElementById("form-master-pin-input");
+    if (!pinInput) return;
+    const newPin = pinInput.value.trim();
+    if (!newPin) {
+        alert("PIN kodas negali būti tuščias!");
+        return;
+    }
+    MASTER_PIN = newPin;
+    localStorage.setItem("pro_flow_master_pin", newPin);
+    addSystemAlert("success", "Pakeistas PIN kodas", "Meistras atnaujino apsaugos PIN kodą.");
+    alert(`PIN kodas sėkmingai pakeistas į: ${newPin}`);
 };
