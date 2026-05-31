@@ -21,6 +21,7 @@ const DEFAULT_ORDERS = [
         status: "Gaminama",
         assignedStation: "Karkasas #1",
         workerName: "Jonas Pavardenis",
+        workerName2: "Petras K.",
         startedAt: Date.now() - 45 * 60 * 1000, // started 45 mins ago
         completedAt: null,
         durationSeconds: 0,
@@ -39,6 +40,7 @@ const DEFAULT_ORDERS = [
         status: "Ruošiama",
         assignedStation: "",
         workerName: "",
+        workerName2: "",
         startedAt: null,
         completedAt: null,
         durationSeconds: 0,
@@ -57,6 +59,7 @@ const DEFAULT_ORDERS = [
         status: "Planuojama",
         assignedStation: "",
         workerName: "",
+        workerName2: "",
         startedAt: null,
         completedAt: null,
         durationSeconds: 0,
@@ -75,6 +78,7 @@ const DEFAULT_ORDERS = [
         status: "Baigta",
         assignedStation: "Apdaila #2",
         workerName: "Tomas K.",
+        workerName2: "Andrius V.",
         startedAt: Date.now() - 3 * 3600000,
         completedAt: Date.now() - 1.5 * 3600000,
         durationSeconds: 5400, // 1.5 hours
@@ -147,6 +151,7 @@ state.orders = state.orders.map(order => {
     if (order.plannedMinutes === undefined) order.plannedMinutes = 120;
     if (!order.batch) order.batch = "D-1";
     if (!order.type) order.type = "Pilnaviduris";
+    if (order.workerName2 === undefined) order.workerName2 = "";
     return order;
 });
 localStorage.setItem("pro_flow_orders", JSON.stringify(state.orders));
@@ -337,6 +342,12 @@ function updateClock() {
     if (clockEl) {
         clockEl.textContent = new Date().toLocaleTimeString("lt-LT");
     }
+}
+
+// Helper: Display both worker names
+function getWorkersDisplay(order) {
+    if (order.workerName2) return order.workerName + " + " + order.workerName2;
+    return order.workerName || "";
 }
 
 // Tab router
@@ -653,6 +664,7 @@ function setupWorkerConsoleEvents() {
     const btnStart = document.getElementById("btn-worker-start");
     const btnFinish = document.getElementById("btn-worker-finish");
     const workerNameInput = document.getElementById("worker-name");
+    const workerName2Input = document.getElementById("worker-name-2");
     const workerStationSelect = document.getElementById("worker-station");
     const previewCard = document.getElementById("worker-order-preview");
     const errorText = document.getElementById("worker-id-error");
@@ -694,6 +706,7 @@ function setupWorkerConsoleEvents() {
         // Autocomplete form if already in progress
         if (found.status === "Gaminama") {
             workerNameInput.value = found.workerName || "";
+            if (workerName2Input) workerName2Input.value = found.workerName2 || "";
             workerStationSelect.value = found.assignedStation || "";
         }
 
@@ -802,15 +815,18 @@ function setupWorkerConsoleEvents() {
         selectedWorkerOrder.status = "Gaminama";
         selectedWorkerOrder.assignedStation = station;
         selectedWorkerOrder.workerName = workerName;
+        selectedWorkerOrder.workerName2 = workerName2Input ? workerName2Input.value.trim() : "";
         selectedWorkerOrder.startedAt = Date.now();
         selectedWorkerOrder.completedAt = null;
         selectedWorkerOrder.durationSeconds = 0;
 
-        addSystemAlert("info", "Pradėtas darbas", `${workerName} pradėjo darbus prie panelės ${selectedWorkerOrder.id} stotelėje „${station}“.`);
+        const partnerText = selectedWorkerOrder.workerName2 ? ` + ${selectedWorkerOrder.workerName2}` : "";
+        addSystemAlert("info", "Pradėtas darbas", `${workerName}${partnerText} pradėjo darbus prie panelės ${selectedWorkerOrder.id} stotelėje „${station}“.`);
         
         // Reset preview/form
         inputId.value = "";
         workerNameInput.value = "";
+        if (workerName2Input) workerName2Input.value = "";
         workerStationSelect.value = "";
         previewCard.classList.add("hidden");
         selectedWorkerOrder = null;
@@ -839,12 +855,14 @@ function setupWorkerConsoleEvents() {
         selectedWorkerOrder.durationSeconds = Math.round(durationMs / 1000);
         
         const minutes = Math.round(selectedWorkerOrder.durationSeconds / 60);
+        const partnerText2 = selectedWorkerOrder.workerName2 ? ` + ${selectedWorkerOrder.workerName2}` : "";
 
-        addSystemAlert("success", "Pabaigtas darbas", `${selectedWorkerOrder.workerName} užbaigė panelės ${selectedWorkerOrder.id} gamybą stotelėje „${selectedWorkerOrder.assignedStation}“. Trukmė: ~${minutes} min.`);
+        addSystemAlert("success", "Pabaigtas darbas", `${selectedWorkerOrder.workerName}${partnerText2} užbaigė panelės ${selectedWorkerOrder.id} gamybą stotelėje „${selectedWorkerOrder.assignedStation}“. Trukmė: ~${minutes} min.`);
         
         // Reset preview/form
         inputId.value = "";
         workerNameInput.value = "";
+        if (workerName2Input) workerName2Input.value = "";
         workerStationSelect.value = "";
         previewCard.classList.add("hidden");
         selectedWorkerOrder = null;
@@ -873,7 +891,7 @@ function updateActiveJobsList() {
                         <span class="job-title">${order.id} - ${order.name}</span>
                     </div>
                     <div class="job-meta-row">
-                        <span><i data-lucide="user"></i> ${order.workerName}</span>
+                        <span><i data-lucide="users"></i> ${getWorkersDisplay(order)}</span>
                         <span><i data-lucide="cpu"></i> ${order.assignedStation}</span>
                     </div>
                 </div>
@@ -903,7 +921,7 @@ window.quickFinishJob = function(orderId) {
     order.durationSeconds = Math.round(durationMs / 1000);
     const minutes = Math.round(order.durationSeconds / 60);
 
-    addSystemAlert("success", "Pabaigtas darbas", `${order.workerName} užbaigė panelės ${order.id} gamybą stotelėje „${order.assignedStation}“. Trukmė: ~${minutes} min.`);
+    addSystemAlert("success", "Pabaigtas darbas", `${getWorkersDisplay(order)} užbaigė panelės ${order.id} gamybą stotelėje „${order.assignedStation}“. Trukmė: ~${minutes} min.`);
     alert(`Gamyba užbaigta ir perduota kokybės kontrolei!`);
 };
 
@@ -970,7 +988,7 @@ function updateKanbanBoard() {
             metaHtml = `
                 <div class="card-worker-badge">
                     <span class="worker-dot"></span>
-                    <span>${order.workerName} (${order.assignedStation})</span>
+                    <span>${getWorkersDisplay(order)} (${order.assignedStation})</span>
                 </div>
                 <div class="card-worker-badge text-muted">
                     <i data-lucide="clock"></i>
@@ -983,7 +1001,7 @@ function updateKanbanBoard() {
                     <span>Stotelė: ${order.assignedStation}</span>
                 </div>
                 <div class="card-worker-badge text-muted">
-                    <span>Atliko: ${order.workerName}</span>
+                    <span>Atliko: ${getWorkersDisplay(order)}</span>
                 </div>
             `;
         } else if (order.status === "Baigta") {
@@ -1056,10 +1074,12 @@ window.moveOrderState = function(orderId, direction) {
             // Cannot start without assigning worker. Must redirect to worker console or open dialog
             const worker = prompt("Pradėti darbą rankiniu būdu. Įveskite darbuotojo vardą:");
             if (!worker) return;
+            const worker2 = prompt("2-as darbuotojas (partneris). Palikite tuščią jei dirba vienas:") || "";
             const station = prompt(`Įveskite stotelę (sekcija ${order.stationGroup}):`, `${order.stationGroup} #1`);
             if (!station) return;
             
             order.workerName = worker;
+            order.workerName2 = worker2;
             order.assignedStation = station;
             order.startedAt = Date.now();
         }
@@ -1412,6 +1432,7 @@ function setupModalEvents() {
                 status: "Planuojama",
                 assignedStation: "",
                 workerName: "",
+                workerName2: "",
                 startedAt: null,
                 completedAt: null,
                 durationSeconds: 0,
@@ -1610,7 +1631,7 @@ function updateShiftMonitor() {
                     cellClass = "state-gaminama";
                     cellInner = `
                         <div class="matrix-cell-content">
-                            <span class="matrix-worker">👤 ${order.workerName}</span>
+                            <span class="matrix-worker">👥 ${getWorkersDisplay(order)}</span>
                             <span class="matrix-time kanban-timer" data-start-time="${order.startedAt}">00:00:00</span>
                         </div>
                     `;
@@ -1618,7 +1639,7 @@ function updateShiftMonitor() {
                     cellClass = "state-qc";
                     cellInner = `
                         <div class="matrix-cell-content">
-                            <span class="matrix-worker">👤 ${order.workerName}</span>
+                            <span class="matrix-worker">👥 ${getWorkersDisplay(order)}</span>
                             <span class="matrix-time">QC (Kontrolė)</span>
                         </div>
                     `;
@@ -1627,7 +1648,7 @@ function updateShiftMonitor() {
                     const min = Math.round(order.durationSeconds / 60);
                     cellInner = `
                         <div class="matrix-cell-content">
-                            <span class="matrix-worker">👤 ${order.workerName}</span>
+                            <span class="matrix-worker">👥 ${getWorkersDisplay(order)}</span>
                             <span class="matrix-time">Baigta (~${min} m.)</span>
                         </div>
                     `;
@@ -1900,6 +1921,7 @@ function processImportRows(rows) {
                 status: "Planuojama",
                 assignedStation: "",
                 workerName: "",
+                workerName2: "",
                 startedAt: null,
                 completedAt: null,
                 durationSeconds: 0,
