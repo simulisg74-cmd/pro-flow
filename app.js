@@ -121,6 +121,10 @@ let state = {
     inventory: JSON.parse(localStorage.getItem("pro_flow_inventory")) || DEFAULT_INVENTORY
 };
 
+// Authentication state for Master configuration
+let isMasterAuthenticated = false;
+const MASTER_PIN = "1234"; // Default Master PIN code
+
 // Migration: Ensure Langai station exists in current state
 if (!state.stations.hasOwnProperty("Langai")) {
     const newStations = {};
@@ -209,7 +213,12 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // Check location hash for direct linking
-    const initialTab = window.location.hash.replace("#", "") || "dashboard";
+    let initialTab = window.location.hash.replace("#", "") || "dashboard";
+    const masterTabs = ["dashboard", "shift", "kanban", "stations", "orders", "warehouse"];
+    if (masterTabs.includes(initialTab) && !isMasterAuthenticated) {
+        initialTab = "worker";
+        window.location.hash = "worker";
+    }
     switchTab(initialTab);
 
     // Modal Events
@@ -331,6 +340,22 @@ function updateClock() {
 
 // Tab router
 function switchTab(tabId) {
+    const masterTabs = ["dashboard", "shift", "kanban", "stations", "orders", "warehouse"];
+    if (masterTabs.includes(tabId) && !isMasterAuthenticated) {
+        const enteredPin = prompt("Įveskite meistro PIN kodą (numatytasis: 1234):");
+        if (enteredPin === MASTER_PIN) {
+            isMasterAuthenticated = true;
+            const btnLock = document.getElementById("btn-lock-master");
+            if (btnLock) btnLock.style.display = "flex";
+            addSystemAlert("info", "Meistras prisijungė", "Sėkmingai autorizuotas meistro PIN kodas.");
+        } else {
+            if (enteredPin !== null) {
+                alert("Neteisingas PIN kodas!");
+            }
+            return;
+        }
+    }
+
     // Hide all tabs
     document.querySelectorAll(".tab-content").forEach(tab => {
         tab.classList.remove("active-tab");
@@ -2165,4 +2190,13 @@ window.onInventoryInputChange = function(item) {
         state.inventory[item] = isNaN(val) ? 0 : Math.max(0, val);
         saveState();
     }
+};
+
+window.lockMasterViews = function() {
+    isMasterAuthenticated = false;
+    const btnLock = document.getElementById("btn-lock-master");
+    if (btnLock) btnLock.style.display = "none";
+    switchTab("worker");
+    addSystemAlert("warning", "Valdymas užrakintas", "Meistras atsijungė iš valdymo sistemos.");
+    alert("Valdymas sėkmingai užrakintas. Grąžinama darbuotojo konsolė.");
 };
